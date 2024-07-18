@@ -22,9 +22,9 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/gutaodev/vk-multi-node/errdefs"
+	"github.com/gutaodev/vk-multi-node/internal/kubernetes/remotecommand"
 	"github.com/pkg/errors"
-	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
-	"github.com/virtual-kubelet/virtual-kubelet/internal/kubernetes/remotecommand"
 	"k8s.io/apimachinery/pkg/types"
 	remoteutils "k8s.io/client-go/tools/remotecommand"
 )

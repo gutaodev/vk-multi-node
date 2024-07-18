@@ -1,6 +1,6 @@
-module github.com/virtual-kubelet/virtual-kubelet
+module github.com/gutaodev/vk-multi-node
 
-go 1.15
+go 1.16
 
 require (
 	contrib.go.opencensus.io/exporter/jaeger v0.1.0
@@ -8,7 +8,6 @@ require (
 	github.com/bombsimon/logrusr v1.0.0
 	github.com/docker/spdystream v0.0.0-20170912183627-bc6354cbbc29 // indirect
 	github.com/elazarl/goproxy v0.0.0-20190421051319-9d40249d3c2f // indirect
-	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/google/go-cmp v0.5.2
 	github.com/gorilla/mux v1.7.3
 	github.com/mitchellh/go-homedir v1.1.0

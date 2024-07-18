@@ -22,9 +22,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gutaodev/vk-multi-node/errdefs"
+	"github.com/gutaodev/vk-multi-node/log"
 	"github.com/pkg/errors"
-	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
-	"github.com/virtual-kubelet/virtual-kubelet/log"
 	octrace "go.opencensus.io/trace"
 	"go.opencensus.io/zpages"
 )

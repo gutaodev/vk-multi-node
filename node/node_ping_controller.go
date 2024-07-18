@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/virtual-kubelet/virtual-kubelet/internal/lock"
-	"github.com/virtual-kubelet/virtual-kubelet/log"
-	"github.com/virtual-kubelet/virtual-kubelet/trace"
+	"github.com/gutaodev/vk-multi-node/internal/lock"
+	"github.com/gutaodev/vk-multi-node/log"
+	"github.com/gutaodev/vk-multi-node/trace"
 	"golang.org/x/sync/singleflight"
 	"k8s.io/apimachinery/pkg/util/wait"
 )

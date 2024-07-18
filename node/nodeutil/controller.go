@@ -11,9 +11,9 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/gutaodev/vk-multi-node/log"
+	"github.com/gutaodev/vk-multi-node/node"
 	"github.com/pkg/errors"
-	"github.com/virtual-kubelet/virtual-kubelet/log"
-	"github.com/virtual-kubelet/virtual-kubelet/node"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
@@ -274,7 +274,7 @@ func WithClient(c kubernetes.Interface) NodeOpt {
 //
 // Some basic values are set for node status, you'll almost certainly want to modify it.
 //
-// If client is nil, this will construct a client using ClientsetFromEnv
+// # If client is nil, this will construct a client using ClientsetFromEnv
 //
 // It is up to the caller to configure auth on the HTTP handler.
 func NewNode(name string, newProvider NewProviderFunc, opts ...NodeOpt) (*Node, error) {
@@ -370,7 +370,7 @@ func NewNode(name string, newProvider NewProviderFunc, opts ...NodeOpt) (*Node, 
 		np,
 		&cfg.NodeSpec,
 		cfg.Client.CoreV1().Nodes(),
-		node.WithNodeEnableLeaseV1(NodeLeaseV1Client(cfg.Client), node.DefaultLeaseDuration),
+		//node.WithNodeEnableLeaseV1(NodeLeaseV1Client(cfg.Client), node.DefaultLeaseDuration),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating node controller")

@@ -3,8 +3,8 @@ package provider
 import (
 	"sync"
 
-	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
-	"github.com/virtual-kubelet/virtual-kubelet/internal/manager"
+	"github.com/gutaodev/vk-multi-node/errdefs"
+	"github.com/gutaodev/vk-multi-node/internal/manager"
 )
 
 // Store is used for registering/fetching providers

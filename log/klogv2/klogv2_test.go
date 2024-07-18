@@ -16,7 +16,7 @@ package klogv2
 import (
 	"testing"
 
-	"github.com/virtual-kubelet/virtual-kubelet/log"
+	"github.com/gutaodev/vk-multi-node/log"
 )
 
 func TestFieldMap_String(t *testing.T) {

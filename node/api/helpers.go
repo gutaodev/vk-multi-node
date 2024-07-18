@@ -18,8 +18,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
-	"github.com/virtual-kubelet/virtual-kubelet/log"
+	"github.com/gutaodev/vk-multi-node/errdefs"
+	"github.com/gutaodev/vk-multi-node/log"
 )
 
 type handlerFunc func(http.ResponseWriter, *http.Request) error

@@ -26,7 +26,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/virtual-kubelet/virtual-kubelet/log"
+	"github.com/gutaodev/vk-multi-node/log"
 	"k8s.io/klog/v2"
 )
 
