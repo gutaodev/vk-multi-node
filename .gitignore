@@ -41,3 +41,6 @@ loganalytics.json
 **/terraform-provider-kubernetes
 **/*.tfstate*
 debug
+
+# ignores DS_Store
+.DS_Store

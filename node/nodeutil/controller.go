@@ -214,7 +214,8 @@ type NodeOpt func(c *NodeConfig) error
 // It gets used in conjection with NodeOpt in NewNodeFromClient
 type NodeConfig struct {
 	// Set the client to use, otherwise a client will be created from ClientsetFromEnv
-	Client kubernetes.Interface
+	Client      kubernetes.Interface
+	LowerClient kubernetes.Interface
 
 	// Set the node spec to register with Kubernetes
 	NodeSpec v1.Node
@@ -357,6 +358,151 @@ func NewNode(name string, newProvider NewProviderFunc, opts ...NodeOpt) (*Node, 
 	var readyCb func(context.Context) error
 	if np == nil {
 		nnp := node.NewNaiveNodeProvider()
+		np = nnp
+
+		readyCb = func(ctx context.Context) error {
+			setNodeReady(&cfg.NodeSpec)
+			err := nnp.UpdateStatus(ctx, &cfg.NodeSpec)
+			return errors.Wrap(err, "error marking node as ready")
+		}
+	}
+
+	nc, err := node.NewNodeController(
+		np,
+		&cfg.NodeSpec,
+		cfg.Client.CoreV1().Nodes(),
+		//node.WithNodeEnableLeaseV1(NodeLeaseV1Client(cfg.Client), node.DefaultLeaseDuration),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating node controller")
+	}
+
+	var eb record.EventBroadcaster
+	if cfg.EventRecorder == nil {
+		eb = record.NewBroadcaster()
+		cfg.EventRecorder = eb.NewRecorder(scheme.Scheme, v1.EventSource{Component: path.Join(name, "pod-controller")})
+	}
+
+	pc, err := node.NewPodController(node.PodControllerConfig{
+		PodClient:         cfg.Client.CoreV1(),
+		EventRecorder:     cfg.EventRecorder,
+		Provider:          p,
+		PodInformer:       podInformer,
+		SecretInformer:    secretInformer,
+		ConfigMapInformer: configMapInformer,
+		ServiceInformer:   serviceInformer,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating pod controller")
+	}
+
+	return &Node{
+		nc:                 nc,
+		pc:                 pc,
+		readyCb:            readyCb,
+		ready:              make(chan struct{}),
+		done:               make(chan struct{}),
+		eb:                 eb,
+		podInformerFactory: podInformerFactory,
+		scmInformerFactory: scmInformerFactory,
+		client:             cfg.Client,
+		tlsConfig:          cfg.TLSConfig,
+		h:                  cfg.Handler,
+		listenAddr:         cfg.HTTPListenAddr,
+		workers:            cfg.NumWorkers,
+	}, nil
+}
+
+func NewMultiNode(name string, newProvider NewProviderFunc, lowerKubeConfig string, opts ...NodeOpt) (*Node, error) {
+	cfg := NodeConfig{
+		NumWorkers:           runtime.NumCPU(),
+		InformerResyncPeriod: time.Minute,
+		KubeconfigPath:       os.Getenv("KUBECONFIG"),
+		HTTPListenAddr:       ":10250",
+		NodeSpec: v1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+				Labels: map[string]string{
+					"type":                   "virtual-kubelet",
+					"kubernetes.io/role":     "agent",
+					"kubernetes.io/hostname": name,
+				},
+			},
+			Status: v1.NodeStatus{
+				Phase: v1.NodePending,
+				Conditions: []v1.NodeCondition{
+					{Type: v1.NodeReady},
+					{Type: v1.NodeDiskPressure},
+					{Type: v1.NodeMemoryPressure},
+					{Type: v1.NodePIDPressure},
+					{Type: v1.NodeNetworkUnavailable},
+				},
+			},
+		},
+	}
+
+	for _, o := range opts {
+		if err := o(&cfg); err != nil {
+			return nil, err
+		}
+	}
+
+	if _, _, err := net.SplitHostPort(cfg.HTTPListenAddr); err != nil {
+		return nil, errors.Wrap(err, "error parsing http listen address")
+	}
+
+	if cfg.Client == nil {
+		var err error
+		cfg.Client, err = ClientsetFromEnv(cfg.KubeconfigPath)
+		if err != nil {
+			return nil, errors.Wrap(err, "error creating clientset from env")
+		}
+	}
+	if cfg.LowerClient == nil {
+		if len(lowerKubeConfig) == 0 {
+			return nil, fmt.Errorf("error creating lower kubernetes client, kube-config is nil")
+		}
+		var err error
+		cfg.LowerClient, err = ClientsetFromEnv(lowerKubeConfig)
+		if err != nil {
+			return nil, errors.Wrap(err, "error creating lower clientset from env")
+		}
+	}
+
+	podInformerFactory := informers.NewSharedInformerFactoryWithOptions(
+		cfg.Client,
+		cfg.InformerResyncPeriod,
+		PodInformerFilter(name),
+	)
+
+	scmInformerFactory := informers.NewSharedInformerFactoryWithOptions(
+		cfg.Client,
+		cfg.InformerResyncPeriod,
+	)
+
+	podInformer := podInformerFactory.Core().V1().Pods()
+	secretInformer := scmInformerFactory.Core().V1().Secrets()
+	configMapInformer := scmInformerFactory.Core().V1().ConfigMaps()
+	serviceInformer := scmInformerFactory.Core().V1().Services()
+
+	p, np, err := newProvider(ProviderConfig{
+		Pods:       podInformer.Lister(),
+		ConfigMaps: configMapInformer.Lister(),
+		Secrets:    secretInformer.Lister(),
+		Services:   serviceInformer.Lister(),
+		Node:       &cfg.NodeSpec,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating provider")
+	}
+
+	if cfg.routeAttacher != nil {
+		cfg.routeAttacher(p, cfg, podInformer.Lister())
+	}
+
+	var readyCb func(context.Context) error
+	if np == nil {
+		nnp := node.NewMultiNodeProviderV1(cfg.LowerClient.CoreV1().Nodes())
 		np = nnp
 
 		readyCb = func(ctx context.Context) error {
